@@ -25,7 +25,11 @@ public class GalleryController {
                 if (empty || item == null) {
                     setText(null);
                 } else {
-                    setText(item.getName() + " - " + item.getAddress() + " (" + item.getRating() + "/5.0)");
+                    String rating = "N/A";
+                    if (item.getRating() >= 0) {
+                        rating = item.getRating() + "/5.0";
+                    }
+                    setText(item.getName() + " - " + item.getAddress() + " (" + rating + ")");
                 }
             }
         });

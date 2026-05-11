@@ -8,18 +8,23 @@ import com.project.artconnect.service.impl.*;
  * initialization.
  */
 public class ServiceProvider {
-    private static final InMemoryArtistService artistService = new InMemoryArtistService();
-    private static final InMemoryArtworkService artworkService = new InMemoryArtworkService();
-    private static final InMemoryGalleryService galleryService = new InMemoryGalleryService();
-    private static final InMemoryWorkshopService workshopService = new InMemoryWorkshopService();
-    private static final InMemoryCommunityService communityService = new InMemoryCommunityService();
+    private static final ArtistService artistService = new ArtistServiceImpl();
+    private static final InMemoryArtistService inMemoryArtistService = new InMemoryArtistService();
+    private static final ArtworkService artworkService = new ArtworkServiceImpl();
+    private static final InMemoryArtworkService inMemoryArtworkService = new InMemoryArtworkService();
+    private static final GalleryService galleryService = new GalleryServiceImpl();
+    private static final InMemoryGalleryService inMemoryGalleryService = new InMemoryGalleryService();
+    private static final WorkshopService workshopService = new WorkshopServiceImpl();
+    private static final InMemoryWorkshopService inMemoryWorkshopService = new InMemoryWorkshopService();
+    private static final CommunityService communityService = new CommunityServiceImpl();
+    private static final InMemoryCommunityService inMemoryCommunityService = new InMemoryCommunityService();
 
     static {
         // Initialize services with their dependencies
-        artworkService.initData(artistService);
-        galleryService.initData(artworkService);
-        workshopService.initData(artistService);
-        communityService.initData(artworkService);
+        inMemoryArtworkService.initData(inMemoryArtistService);
+        inMemoryGalleryService.initData(inMemoryArtworkService);
+        inMemoryWorkshopService.initData(inMemoryArtistService);
+        inMemoryCommunityService.initData(inMemoryArtworkService);
     }
 
     public static ArtistService getArtistService() {
