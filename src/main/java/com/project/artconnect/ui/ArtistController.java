@@ -15,6 +15,18 @@ public class ArtistController {
     @FXML
     private ComboBox<Discipline> disciplineFilter;
     @FXML
+    private TextField emailField;
+    @FXML
+    private TextField firstNameField;
+    @FXML
+    private TextField surnameField;
+    @FXML
+    private TextField cityField;
+    @FXML
+    private TextField birthYearField;
+    @FXML
+    private Label messageLabel;
+    @FXML
     private TableView<Artist> artistTable;
     @FXML
     private TableColumn<Artist, String> nameColumn;
@@ -53,7 +65,71 @@ public class ArtistController {
         refreshTable();
     }
 
+    @FXML
+    private void handleAddArtist() {
+        String email = emailField.getText();
+        String firstName = firstNameField.getText();
+        String surname = surnameField.getText();
+        String city = cityField.getText();
+        String birthYearText = birthYearField.getText();
+
+        if (email.isBlank() || firstName.isBlank() || surname.isBlank()) {
+            messageLabel.setText("Email, first name and surname are required.");
+            return;
+        }
+
+        Artist artist = new Artist();
+        artist.setContactEmail(email);
+        artist.setName(firstName + " " + surname);
+        artist.setCity(city);
+        artist.setActive(true);
+
+        if (!birthYearText.isBlank()) {
+            try {
+                artist.setBirthYear(Integer.parseInt(birthYearText));
+            } catch (NumberFormatException e) {
+                messageLabel.setText("Birth year must be a number.");
+                return;
+            }
+        }
+
+        try {
+            artistService.createArtist(artist);
+            clearAddForm();
+            refreshTable();
+            messageLabel.setText("Artist added.");
+        } catch (RuntimeException e) {
+            messageLabel.setText("Error while adding artist.");
+        }
+    }
+
+    @FXML
+    private void handleDeleteArtist() {
+        Artist selectedArtist = artistTable.getSelectionModel().getSelectedItem();
+
+        if (selectedArtist == null) {
+            messageLabel.setText("Select an artist first.");
+            return;
+        }
+
+        try {
+            artistService.deleteArtist(selectedArtist.getContactEmail());
+            refreshTable();
+            messageLabel.setText("Artist deleted.");
+        } catch (RuntimeException e) {
+            messageLabel.setText("Error while deleting artist.");
+        }
+    }
+
     private void refreshTable() {
         artistTable.setItems(FXCollections.observableArrayList(artistService.getAllArtists()));
+    }
+
+    private void clearAddForm() {
+        emailField.clear();
+        firstNameField.clear();
+        surnameField.clear();
+        cityField.clear();
+        birthYearField.clear();
     }
 }

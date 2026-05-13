@@ -40,7 +40,38 @@ public class JdbcArtistDao implements ArtistDao {
 
     @Override
     public void save(Artist artist) {
-        throw new UnsupportedOperationException("Ajout non implemente pour le moment.");
+        String sql = "INSERT INTO Artist(Email, Name, surname, City, Birth_Year, bio, phone, website, socialMedia, isActive) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = ConnectionManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            String[] names = artist.getName().split(" ", 2);
+            String firstName = names[0];
+            String surname = "";
+            if (names.length > 1) {
+                surname = names[1];
+            }
+
+            statement.setString(1, artist.getContactEmail());
+            statement.setString(2, firstName);
+            statement.setString(3, surname);
+            statement.setString(4, artist.getCity());
+            if (artist.getBirthYear() == null) {
+                statement.setNull(5, java.sql.Types.INTEGER);
+            } else {
+                statement.setInt(5, artist.getBirthYear());
+            }
+            statement.setString(6, artist.getBio());
+            statement.setString(7, artist.getPhone());
+            statement.setString(8, artist.getWebsite());
+            statement.setString(9, artist.getSocialMedia());
+            statement.setBoolean(10, artist.isActive());
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de l'ajout de l'artiste", e);
+        }
     }
 
     @Override
@@ -49,8 +80,27 @@ public class JdbcArtistDao implements ArtistDao {
     }
 
     @Override
-    public void delete(String artistName) {
-        throw new UnsupportedOperationException("Suppression non implementee pour le moment.");
+    public void delete(String artistEmail) {
+        try (Connection connection = ConnectionManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                supprimerDependances(connection, artistEmail);
+
+                String deleteSql = "DELETE FROM Artist WHERE Email = ?";
+                try (PreparedStatement statement = connection.prepareStatement(deleteSql)) {
+                    statement.setString(1, artistEmail);
+                    statement.executeUpdate();
+                }
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la suppression de l'artiste", e);
+        }
     }
 
     @Override
@@ -130,6 +180,58 @@ public class JdbcArtistDao implements ArtistDao {
                     artist.getDisciplines().add(discipline);
                 }
             }
+        }
+    }
+
+    private void supprimerDependances(Connection connection, String artistEmail) throws SQLException {
+        String deleteTagsSql = "DELETE t FROM tags t "
+                + "JOIN Artworks aw ON t.id_artworks = aw.id_artworks "
+                + "WHERE aw.Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteTagsSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
+        }
+
+        String deleteExhibitionsSql = "DELETE ip FROM is_part_of ip "
+                + "JOIN Artworks aw ON ip.id_artworks = aw.id_artworks "
+                + "WHERE aw.Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteExhibitionsSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
+        }
+
+        String deleteReviewsSql = "DELETE r FROM Review r "
+                + "JOIN Artworks aw ON r.id_artworks = aw.id_artworks "
+                + "WHERE aw.Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteReviewsSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
+        }
+
+        String deletePracticeSql = "DELETE FROM practice WHERE Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deletePracticeSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
+        }
+
+        String deleteBookingsSql = "DELETE b FROM booking b "
+                + "JOIN workshops w ON b.id_workshops = w.id_workshops "
+                + "WHERE w.Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteBookingsSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
+        }
+
+        String deleteWorkshopsSql = "DELETE FROM workshops WHERE Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteWorkshopsSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
+        }
+
+        String deleteArtworksSql = "DELETE FROM Artworks WHERE Email = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteArtworksSql)) {
+            statement.setString(1, artistEmail);
+            statement.executeUpdate();
         }
     }
 }

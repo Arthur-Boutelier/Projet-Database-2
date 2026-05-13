@@ -44,7 +44,7 @@ public class ArtworkServiceImpl implements ArtworkService {
     }
 
     @Override
-    public void deleteArtwork(String title) {
-        artworkDao.delete(title);
+    public void deleteArtwork(int idArtworks) {
+        artworkDao.delete(idArtworks);
     }
 }

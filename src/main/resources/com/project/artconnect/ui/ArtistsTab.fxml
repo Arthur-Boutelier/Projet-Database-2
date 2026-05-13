@@ -14,6 +14,16 @@
         <Button text="Search" onAction="#handleSearch" />
         <Button text="Reset" onAction="#handleReset" />
     </HBox>
+    <HBox spacing="10.0" alignment="CENTER_LEFT">
+        <TextField fx:id="emailField" promptText="Email" />
+        <TextField fx:id="firstNameField" promptText="First name" />
+        <TextField fx:id="surnameField" promptText="Surname" />
+        <TextField fx:id="cityField" promptText="City" />
+        <TextField fx:id="birthYearField" promptText="Birth year" />
+        <Button text="Add Artist" onAction="#handleAddArtist" />
+        <Button text="Delete Selected Artist" onAction="#handleDeleteArtist" />
+    </HBox>
+    <Label fx:id="messageLabel" />
     <TableView fx:id="artistTable" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="nameColumn" text="Name" prefWidth="200" />

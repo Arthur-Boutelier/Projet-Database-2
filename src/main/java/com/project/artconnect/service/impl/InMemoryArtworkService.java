@@ -67,7 +67,7 @@ public class InMemoryArtworkService implements ArtworkService {
     }
 
     @Override
-    public void deleteArtwork(String title) {
-        artworks.remove(title);
+    public void deleteArtwork(int idArtworks) {
+        // The in-memory version does not use database ids.
     }
 }

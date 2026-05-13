@@ -19,7 +19,7 @@ public class JdbcArtworkDao implements ArtworkDao {
     @Override
     public List<Artwork> findAll() {
         List<Artwork> artworks = new ArrayList<>();
-        String sql = "SELECT aw.Title, aw.creationYear, aw.description, aw.type, aw.price, aw.status, "
+        String sql = "SELECT aw.id_artworks, aw.Title, aw.creationYear, aw.description, aw.type, aw.price, aw.status, "
                 + "ar.Email, ar.Name, ar.surname, ar.City, ar.Birth_Year, ar.bio, ar.phone, ar.website, ar.socialMedia, ar.isActive "
                 + "FROM Artworks aw "
                 + "JOIN Artist ar ON aw.Email = ar.Email";
@@ -40,7 +40,29 @@ public class JdbcArtworkDao implements ArtworkDao {
 
     @Override
     public void save(Artwork artwork) {
-        throw new UnsupportedOperationException("Ajout non implemente pour le moment.");
+        String sql = "INSERT INTO Artworks(id_artworks, Title, creationYear, description, type, price, status, Email) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = ConnectionManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, getNextId(connection));
+            statement.setString(2, artwork.getTitle());
+            if (artwork.getCreationYear() == null) {
+                statement.setNull(3, java.sql.Types.INTEGER);
+            } else {
+                statement.setInt(3, artwork.getCreationYear());
+            }
+            statement.setString(4, artwork.getDescription());
+            statement.setString(5, artwork.getType());
+            statement.setDouble(6, artwork.getPrice());
+            statement.setString(7, artwork.getStatus().name());
+            statement.setString(8, artwork.getArtist().getContactEmail());
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de l'ajout de l'oeuvre", e);
+        }
     }
 
     @Override
@@ -49,14 +71,33 @@ public class JdbcArtworkDao implements ArtworkDao {
     }
 
     @Override
-    public void delete(String title) {
-        throw new UnsupportedOperationException("Suppression non implementee pour le moment.");
+    public void delete(int idArtworks) {
+        try (Connection connection = ConnectionManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                supprimerDependances(connection, idArtworks);
+
+                String deleteSql = "DELETE FROM Artworks WHERE id_artworks = ?";
+                try (PreparedStatement deleteStatement = connection.prepareStatement(deleteSql)) {
+                    deleteStatement.setInt(1, idArtworks);
+                    deleteStatement.executeUpdate();
+                }
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la suppression de l'oeuvre", e);
+        }
     }
 
     @Override
     public List<Artwork> findByArtistName(String artistName) {
         List<Artwork> artworks = new ArrayList<>();
-        String sql = "SELECT aw.Title, aw.creationYear, aw.description, aw.type, aw.price, aw.status, "
+        String sql = "SELECT aw.id_artworks, aw.Title, aw.creationYear, aw.description, aw.type, aw.price, aw.status, "
                 + "ar.Email, ar.Name, ar.surname, ar.City, ar.Birth_Year, ar.bio, ar.phone, ar.website, ar.socialMedia, ar.isActive "
                 + "FROM Artworks aw "
                 + "JOIN Artist ar ON aw.Email = ar.Email "
@@ -82,6 +123,7 @@ public class JdbcArtworkDao implements ArtworkDao {
 
     private Artwork creerArtwork(ResultSet resultSet) throws SQLException {
         Artwork artwork = new Artwork();
+        artwork.setIdArtworks(resultSet.getInt("id_artworks"));
         artwork.setTitle(resultSet.getString("Title"));
 
         int creationYear = resultSet.getInt("creationYear");
@@ -123,5 +165,39 @@ public class JdbcArtworkDao implements ArtworkDao {
         artist.setSocialMedia(resultSet.getString("socialMedia"));
         artist.setActive(resultSet.getBoolean("isActive"));
         return artist;
+    }
+
+    private int getNextId(Connection connection) throws SQLException {
+        String sql = "SELECT MAX(id_artworks) AS max_id FROM Artworks";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet resultSet = statement.executeQuery()) {
+
+            if (resultSet.next()) {
+                return resultSet.getInt("max_id") + 1;
+            }
+        }
+
+        return 1;
+    }
+
+    private void supprimerDependances(Connection connection, int idArtwork) throws SQLException {
+        String deleteTagsSql = "DELETE FROM tags WHERE id_artworks = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteTagsSql)) {
+            statement.setInt(1, idArtwork);
+            statement.executeUpdate();
+        }
+
+        String deleteExhibitionsSql = "DELETE FROM is_part_of WHERE id_artworks = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteExhibitionsSql)) {
+            statement.setInt(1, idArtwork);
+            statement.executeUpdate();
+        }
+
+        String deleteReviewsSql = "DELETE FROM Review WHERE id_artworks = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteReviewsSql)) {
+            statement.setInt(1, idArtwork);
+            statement.executeUpdate();
+        }
     }
 }
